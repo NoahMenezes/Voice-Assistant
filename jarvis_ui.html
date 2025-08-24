@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neuro-Interface | AI Assistant</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        html {
+            background-color: #110a24; /* Ensure no white flash on load */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Prevents scrollbars from canvas */
+            color: #e5e7eb; /* Default light gray text */
+        }
+        #particle-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* Place canvas behind everything */
+            background-color: #110a24; 
+        }
+        #orb-canvas {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            height: 500px;
+            max-width: 90vw;
+            max-height: 90vw;
+        }
+        .mic-button.listening {
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.7); }
+            70% { transform: scale(1.05); box-shadow: 0 0 10px 20px rgba(167, 139, 250, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(167, 139, 250, 0); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-[#110a24] via-[#1a0f35] to-[#0b041a] text-white">
+
+    <canvas id="particle-canvas"></canvas>
+
+    <div class="min-h-screen flex flex-col items-center justify-between p-6 relative">
+        <header class="w-full flex justify-between items-center z-10">
+            <div class="flex items-center gap-3">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 2L9.92 8.08L4 10.16L9.92 12.24L12 18.32L14.08 12.24L20 10.16L14.08 8.08L12 2Z" fill="url(#star-gradient)"/>
+                    <defs>
+                        <linearGradient id="star-gradient" x1="4" y1="2" x2="20" y2="18.32" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#F472B6"/>
+                            <stop offset="1" stop-color="#A78BFA"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div>
+                    <h1 class="text-lg font-semibold text-gray-100">Jarvis</h1>
+                    <p id="header-subtitle" class="text-sm text-gray-400">Neuro-Interface Active</p>
+                </div>
+            </div>
+            </header>
+
+        <canvas id="orb-canvas"></canvas>
+
+        <div id="display-text-container" class="text-center z-10 -mt-16 md:-mt-24">
+            <h2 id="main-text" class="text-3xl md:text-4xl font-medium leading-tight transition-opacity duration-300">
+                &nbsp;
+            </h2>
+            <p id="sub-text" class="text-gray-400 mt-2 text-lg transition-opacity duration-300">
+                &nbsp;
+            </p>
+        </div>
+
+        </div>
+
+    <script>
+        // --- Python-JavaScript Communication ---
+        const mainTextElement = document.getElementById('main-text');
+        const subTextElement = document.getElementById('sub-text');
+        
+        // This button is no longer in the HTML but the JS might be used later
+        // const micButton = document.getElementById('mic-button'); 
+
+        function updateDisplayText(mainText, subText) {
+            // Fade out
+            mainTextElement.style.opacity = 0;
+            subTextElement.style.opacity = 0;
+
+            setTimeout(() => {
+                // Update text
+                mainTextElement.innerHTML = mainText; // Use innerHTML to allow line breaks
+                subTextElement.innerText = subText;
+                
+                // Mic button animation code removed as button is gone
+                
+                // Fade in
+                mainTextElement.style.opacity = 1;
+                subTextElement.style.opacity = 1;
+            }, 300); // Match CSS transition duration
+        }
+
+        // handleMicClick is no longer needed as the button is gone
+
+        // --- Background Particle System (Pink Dots) ---
+        const bgCanvas = document.getElementById('particle-canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+        let backgroundDots = [];
+
+        class BackgroundDot {
+            constructor() {
+                this.x = Math.random() * bgCanvas.width;
+                this.y = Math.random() * bgCanvas.height;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.speedX = (Math.random() * 0.4 - 0.2);
+                this.speedY = (Math.random() * 0.4 - 0.2);
+                this.opacity = Math.random() * 0.5 + 0.2;
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x > bgCanvas.width) this.x = 0;
+                if (this.x < 0) this.x = bgCanvas.width;
+                if (this.y > bgCanvas.height) this.y = 0;
+                if (this.y < 0) this.y = bgCanvas.height;
+            }
+            draw() {
+                bgCtx.beginPath();
+                bgCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                bgCtx.fillStyle = `rgba(236, 72, 153, ${this.opacity})`;
+                bgCtx.shadowColor = 'rgba(236, 72, 153, 0.8)';
+                bgCtx.shadowBlur = 8;
+                bgCtx.fill();
+                bgCtx.closePath();
+            }
+        }
+
+        function initBackgroundDots() {
+            backgroundDots = [];
+            const dotCount = (bgCanvas.width * bgCanvas.height) / 8000;
+            for (let i = 0; i < dotCount; i++) {
+                backgroundDots.push(new BackgroundDot());
+            }
+        }
+
+        function handleBackgroundDots() {
+            for (let i = 0; i < backgroundDots.length; i++) {
+                backgroundDots[i].update();
+                backgroundDots[i].draw();
+            }
+        }
+        
+        function resizeBgCanvas() {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+            initBackgroundDots();
+        }
+        window.addEventListener('resize', resizeBgCanvas);
+        resizeBgCanvas();
+
+        function animateBackground() {
+            const gradient = bgCtx.createLinearGradient(0, 0, bgCanvas.width, bgCanvas.height);
+            gradient.addColorStop(0, 'rgba(17, 10, 36, 0.2)');
+            gradient.addColorStop(0.5, 'rgba(26, 15, 53, 0.2)');
+            gradient.addColorStop(1, 'rgba(11, 4, 26, 0.2)');
+            bgCtx.fillStyle = gradient;
+            bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+            handleBackgroundDots();
+            requestAnimationFrame(animateBackground);
+        }
+        animateBackground();
+
+
+        // --- Three.js Neural Orb ---
+        const orbCanvas = document.getElementById('orb-canvas');
+        let scene, camera, renderer, points;
+        let originalVertices = [];
+        let clock = new THREE.Clock();
+
+        function initOrb() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, orbCanvas.clientWidth / orbCanvas.clientHeight, 0.1, 1000);
+            renderer = new THREE.WebGLRenderer({ canvas: orbCanvas, alpha: true }); // alpha:true for transparent background
+            renderer.setSize(orbCanvas.clientWidth, orbCanvas.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+
+            const geometry = new THREE.SphereGeometry(2, 64, 64);
+            const material = new THREE.PointsMaterial({
+                size: 0.025,
+                vertexColors: true // Use colors defined for each vertex
+            });
+
+            // Assign colors to vertices to create a gradient
+            const colors = [];
+            const color = new THREE.Color();
+            for (let i = 0; i < geometry.attributes.position.count; i++) {
+                const vertex = new THREE.Vector3().fromBufferAttribute(geometry.attributes.position, i);
+                // Color based on y-position (from pink at top to purple at bottom)
+                color.setHSL(0.85 + vertex.y * 0.1, 1.0, 0.5 + vertex.y * 0.2);
+                colors.push(color.r, color.g, color.b);
+            }
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            
+            // Store original vertices for animation
+            originalVertices = geometry.attributes.position.clone();
+
+            points = new THREE.Points(geometry, material);
+            scene.add(points);
+
+            camera.position.z = 4;
+        }
+
+        function animateOrb() {
+            if (!points) return;
+            
+            const time = clock.getElapsedTime();
+            const positions = points.geometry.attributes.position;
+
+            // Animate vertices to create a wave-like distortion
+            for (let i = 0; i < positions.count; i++) {
+                const ox = originalVertices.getX(i);
+                const oy = originalVertices.getY(i);
+                const oz = originalVertices.getZ(i);
+
+                const distortion = 0.15 * Math.sin(oy * 4 + time * 2) * Math.cos(ox * 3 + time * 2);
+                
+                const p = new THREE.Vector3(ox, oy, oz).normalize().multiplyScalar(2 + distortion);
+                positions.setXYZ(i, p.x, p.y, p.z);
+            }
+            positions.needsUpdate = true;
+
+            points.rotation.y += 0.001;
+            
+            renderer.render(scene, camera);
+            requestAnimationFrame(animateOrb);
+        }
+
+        initOrb();
+        animateOrb();
+    </script>
+</body>
+</html>
