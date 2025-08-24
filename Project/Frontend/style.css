@@ -1,0 +1,43 @@
+body {
+    background-color: black;
+    overflow-y: hidden;
+    overflow-x: hidden;
+}
+
+.square {
+    position: relative;
+    width: 400px;
+    height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.square span:nth-child(1) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(#000dff 40%, #6b72ff00 100%);
+    box-shadow: 0 0 50px rgb(25, 0, 255), inset 0 0 50px rgb(25, 0, 255);
+    border-radius: 38% 62% 63% 37% / 41% 44%;
+    transition: 0.5s;
+    animation: animate 6s linear infinite;
+}
+
+.square span:nth-child(2){
+    
+}
+/* Animation for morphing blob */
+@keyframes animate {
+    0% {
+        border-radius: 38% 62% 63% 37% / 41% 44%;
+    }
+    50% {
+        border-radius: 58% 42% 33% 67% / 51% 74% 26% 49%;
+    }
+    100% {
+        border-radius: 38% 62% 63% 37% / 41% 44%;
+    }
+}
