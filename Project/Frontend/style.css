@@ -50,13 +50,6 @@ body{
     animation: animate3 8s linear infinite;
 }
 
-.tlt {
-  font-size: 2rem;
-  font-weight: bold;
-  letter-spacing: 2px;
-  margin-top: 20px;
-}
-
 
 @keyframes animate1 {
     0%{
