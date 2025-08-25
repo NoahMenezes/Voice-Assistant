@@ -2,11 +2,14 @@ import pyttsx3
 import speech_recognition as sr
 import eel
 import threading
+import time
+import pywhatkit
 def speak(text):   #speak the text
     engine=pyttsx3.init('sapi5')
     voices = engine.getProperty('voices') 
     engine.setProperty('voice', voices[0].id) # voice speaker, 0->male,1->female
     engine.setProperty('rate', 125) # voice speed
+    eel.DisplayMessage(text)
     print(voices)
     engine.say(text)
     engine.runAndWait()
@@ -29,10 +32,10 @@ def takecommand():
         query = r.recognize_google(audio, language="en-IN")  # en-IN is correct
         print(f'User said: {query}')
         eel.DisplayMessage(query)
-
+        
+        eel.ShowHood()
         # run speak in separate thread so eel doesn’t freeze
         threading.Thread(target=speak, args=(query,), daemon=True).start()
-
         return query.lower()
 
     except sr.WaitTimeoutError:
@@ -54,4 +57,19 @@ def takecommand():
         print("Recognition failed:", repr(e))
         eel.DisplayMessage("Recognition failed")
         return ""
+    
+@eel.expose    
+def allcommands():
+    
+    query = takecommand()
+    print(query)
+    
+    if "open" in query:
+        from engine.features import openCommand
+        openCommand(query)
+    elif "on youtube":
+        from engine.features import PlayYoutube
+        PlayYoutube(query)
         
+    else:
+        print('not run')
